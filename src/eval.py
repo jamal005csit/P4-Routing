@@ -47,10 +47,13 @@ def exp1(seeds):
                              "generated": st.get("generated", 0),
                              "solved": solved})
     df = pd.DataFrame(rows)
+    df["cost_solved"] = df.cost.where(df.solved == 1)
     agg = df.groupby(["k", "algo"]).agg(
         mean_cost=("cost", "mean"), std_cost=("cost", "std"),
         mean_time=("time", "mean"), std_time=("time", "std"),
-        mean_expanded=("expanded", "mean")).reset_index()
+        mean_expanded=("expanded", "mean"),
+        solved_rate=("solved", "mean"),
+        mean_cost_solved=("cost_solved", "mean")).reset_index()
     agg.to_csv("results/exp1.csv", index=False)
     print(agg.to_string())
     plt.figure()
