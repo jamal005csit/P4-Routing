@@ -71,21 +71,53 @@ Setup: seeds 0–4 for every experiment; mean and standard deviation reported ov
 
 **Experiment 1: search cost by number of orders (k)**
 
-[FILL: table from results/exp1.csv — columns k, algo, mean_cost, std_cost, mean_time, mean_expanded]
+| k | algo | solved rate | mean cost (solved only) | mean time (s) | mean nodes expanded |
+|---|---|---|---|---|---|
+| 6 | A* | 0.6 | 205.0 | 0.000582 | 70.4 |
+| 6 | UCS | 0.6 | 205.0 | 0.000409 | 70.4 |
+| 6 | Greedy | 0.6 | [rerun: Greedy cost now includes waiting] | 0.000039 | 5.4 |
+| 7 | A* | 0.6 | 210.3 | 0.000943 | 141.8 |
+| 7 | UCS | 0.6 | 210.3 | 0.000814 | 141.6 |
+| 7 | Greedy | 0.6 | [rerun] | 0.000041 | 6.4 |
+| 8 | A* | 0.4 | 199.0 | 0.001670 | 271.8 |
+| 8 | UCS | 0.4 | 199.0 | 0.001332 | 271.6 |
+| 8 | Greedy | 0.4 | [rerun] | 0.000053 | 7.2 |
+| 9 | A* | 0.4 | 213.0 | 0.003674 | 551.4 |
+| 9 | UCS | 0.4 | 213.0 | 0.003391 | 549.2 |
+| 9 | Greedy | 0.4 | [rerun] | 0.000067 | 8.2 |
+| 10 | A* | 0.4 | 210.6 | 0.012989 | 1140.0 |
+| 10 | UCS | 0.4 | 210.6 | 0.008306 | 1133.0 |
+| 10 | Greedy | 0.4 | [rerun] | 0.000091 | 9.2 |
+
+The solved rate is the share of random instances where one van can serve all k orders within their windows. Only 40–60% are feasible, so the mean cost is taken over solved instances only. A* and UCS agree on every solved instance. Greedy's cost is recomputed after the fix that adds waiting time, so its cost column must be rerun.
 
 Observations (verified in both runs): A\* and UCS return identical costs for every k, as expected from two optimal algorithms. A\* expands slightly **more** nodes than UCS in these runs (about 1,720 vs 1,600 at k=10), so the heuristic did not reduce search effort on this data. A\* is only expected to help when h is informative. Greedy frequently fails to find any order (the 9999 value is a penalty for no solution), so its costs are not comparable.
 
 **Experiment 2: CSP pruning (BT / BT+FC / BT+FC+AC-3)**
 
-[FILL: table from results/exp2.csv — columns n, mode, mean_nodes, std_nodes, mean_time, solved_rate]
+| n | mode | mean nodes | std nodes | mean time (s) | solved rate |
+|---|---|---|---|---|---|
+| 15 | BT | 16.0 | 0.0 | 0.000140 | 1.0 |
+| 15 | BT+FC | 16.0 | 0.0 | 0.000128 | 1.0 |
+| 15 | BT+FC+AC-3 | 16.0 | 0.0 | 0.000273 | 1.0 |
+| 20 | BT | 8012.6 | 10942.9 | 0.112285 | 0.6 |
+| 20 | BT+FC | 8012.6 | 10942.9 | 0.134669 | 0.6 |
+| 20 | BT+FC+AC-3 | 8012.6 | 10942.9 | 0.278479 | 0.6 |
+| 30 | BT | 16008.4 | 8925.5 | 0.360107 | 0.2 |
+| 30 | BT+FC | 16008.4 | 8925.5 | 0.361919 | 0.2 |
+| 30 | BT+FC+AC-3 | 14906.8 | 8349.6 | 0.794449 | 0.2 |
 
-Observation: on the earlier run, FC and AC-3 did not reduce nodes for 15 and 20 orders, and only slightly reduced them for 30 orders, where only 20% of instances were solved within the limit. We report these results as found; pruning benefits were not observed at these sizes. [FILL: confirm with the final run]
+Observations (real time matrix): at 15 orders all three modes visit the same 16 nodes, and the instances have no pairwise conflicts, so there is nothing to prune. At 20 orders the timeout hides the comparison: in the seeds with conflicts, all three modes hit the 20,000-node cap and fail. The mean of 8,012.6 is exactly 0.6 × 21 + 0.4 × 20,000, so it is a cap artifact, not a pruning result. At 30 orders AC-3 visits slightly fewer nodes (14,907 vs 16,008), but only 20% of instances are solved. The pruning comparison needs a higher node cap (check_csp.py now uses 300,000); until that is rerun, pruning benefits are not demonstrated.
 
 **Experiment 3: NN vs baselines under replay**
 
-[FILL: table from results/exp3.csv — columns model, mean_late, std_late]
+| model | mean late | std late |
+|---|---|---|
+| NN | 8.4 | 10.6 |
+| hist-avg | 12.2 | 10.7 |
+| distance | 12.2 | 10.7 |
 
-Caveat: this experiment currently uses synthetic travel times (Section 7). Results are not evidence about the NN until it is redone with held-out trips.
+Caveat: the hist-avg and distance plans are fixed formulas applied to the NN matrix (×1.10+1 and ×0.85+4) and the replay adds random noise, so the NN wins by construction. The gap (8.4 vs 12.2 late, standard deviation about 10.6 over 5 seeds) is also not statistically clear. These results are not evidence about the NN until the experiment is redone with held-out trips.
 
 **NN accuracy:** Section 3 table.
 
