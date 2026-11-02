@@ -18,6 +18,10 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--seed", type=int, default=7)
 ap.add_argument("--widen", type=int, default=1, help="widen every window by 15 min each side, this many times")
 ap.add_argument("--out", default="results/demo.png")
+ap.add_argument(
+    "--travel-model", choices=("auto", "nn", "synthetic"), default="auto",
+    help="nn uses the trained NN matrix; synthetic explicitly disables the NN",
+)
 a = ap.parse_args()
 
 # ---- 1. input
@@ -25,13 +29,20 @@ inst = generate(seed=a.seed, n=20)
 for _ in range(a.widen):
     widen(inst, 15)
 zi = {z: i for i, z in enumerate(inst["top20"])}
-if os.path.exists("time_matrix_20x20x24.npy"):
-    mat = np.load("time_matrix_20x20x24.npy")
+matrix_path = "time_matrix_20x20x24.npy"
+has_nn_matrix = os.path.exists(matrix_path)
+if a.travel_model == "nn" and not has_nn_matrix:
+    raise FileNotFoundError(
+        "NN travel matrix is missing. Run make_data.py and python -m src.nn first."
+    )
+use_nn = a.travel_model == "nn" or (a.travel_model == "auto" and has_nn_matrix)
+if use_nn:
+    mat = np.load(matrix_path)
     if mat.shape != (20, 20, 24):
-        print(f"warn matrix shape {mat.shape}, using fallback"); mat = np.full((20, 20, 24), 12.0)
-    print("travel times: NN matrix (time_matrix_20x20x24.npy)")
+        raise ValueError(f"Expected NN matrix shape (20,20,24), got {mat.shape}")
+    print("travel times: trained NN matrix (NN ON)")
 else:
-    print("warn no time_matrix_20x20x24.npy -> SYNTHETIC travel times (run make_data.py and src.nn first)")
+    print("travel times: deterministic synthetic matrix (NN OFF; comparison/demo only)")
     rng = np.random.RandomState(0)
     mat = np.full((20, 20, 24), 12.0) + rng.rand(20, 20, 24) * 4.0
 print(f"windows widened {a.widen}x15 min")
