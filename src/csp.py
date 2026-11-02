@@ -58,7 +58,8 @@ class CSP:
         if len(assign) == self.n:
             return dict(assign) if self.capacity_ok(assign) else None
             
-        v = next(x for x in order if x not in assign)
+        # dynamic ordering (minimum remaining values, ties broken by degree): lets FC/AC-3 domain reductions matter
+        v = min((x for x in range(self.n) if x not in assign), key=lambda x: (len(dom[x]), -sum(self.diff[x])))
         for val in list(dom[v]):
             if any(assign.get(u) == val and self.diff[v][u] for u in assign): 
                 continue
