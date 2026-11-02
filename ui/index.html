@@ -48,64 +48,76 @@ ul.tl li{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;border-r
 <div class=grid>
 <div class=glass><h2>Day setup</h2>
 <label>Seed</label><input id=seed value=7><label>Orders</label><input id=n value=20>
-<label>Search per van</label><div class=seg id=algo><button class=on data=v="A*">A*</button><button data=v=UCS>UCS</button><button data=v=Greedy>Greedy</button></div>
-<button class="btn primary" onclick=run()>Assign + Route</button>
+<label>Search per van</label><div class=seg id=algo><button class=on data-v="A*">A*</button><button data-v="UCS">UCS</button><button data-v="Greedy">Greedy</button></div>
+<button class="btn primary" onclick="WIDEN=0;run()">Assign + Route</button>
 <button class="btn ghost" onclick=replay()>Replay with real times</button>
 <button class="btn ghost" onclick=widen()>Widen windows +15 min</button>
 <div class=small id=msg>Orders 7 & 12 — 10:00–10:30 / 10:10–10:40, 38 min apart → cannot share a van.</div>
 </div>
 <div class=glass><h2>Fleet</h2>
-<div class=stats><div class=stat><b id=s_on>–</b><s>on-time</s></div><div class=stat><b id=s_t>–</b><s>total min</s></div><div class=stat><b id=s_l>–</b><s>loops</s></div><div class=stat><b id=s_u>0</b><s>unserviceable</s></div></div>
-<div class=seg id=tabs><button class=on data=t=routes>Routes</button><button data=t=trace>Trace</button><button data=t=prune>Pruning</button><button data=t=nn>NN on/off</button></div>
+<div class=stats><div class=stat><b id=s_on>–</b><s>stops on time</s></div><div class=stat><b id=s_t>–</b><s>drive min, all vans</s></div><div class=stat><b id=s_l>–</b><s>CSP rounds (max 5)</s></div><div class=stat><b id=s_u>0</b><s>orders not placed</s></div></div>
+<div class=seg id=tabs><button class=on data-t="routes">Routes</button><button data-t="trace">Trace</button><button data-t="prune">Pruning</button><button data-t="nn">NN on/off</button></div>
 <div id=trace class=small>expanded/generated per van shown after run</div>
-<div class=seg id=vans><button class=on data=v=0>Van 0</button><button data=v=1>Van 1</button><button data=v=2>Van 2</button></div>
+<div class=seg id=vans><button class=on data-v="0">Van 0</button><button data-v="1">Van 1</button><button data-v="2">Van 2</button></div>
 <ul class=tl id=list></ul>
 </div>
 </div></div>
 <script>
-let ORDERS=[],ASSIGN={},ROUTES={},VAN=0,ALGO="A*",TAB="routes",NN_ON=true;
+let DATA=null,VAN=0,ALGO="A*",TAB="routes",MODEL="NN",WIDEN=0,META={},LAST_REPLAY=null;
+const $=id=>document.getElementById(id);
+const box='padding:14px;background:rgba(255,255,255,.5);border-radius:16px;border:1px solid var(--line)';
 document.querySelectorAll('#algo button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#algo button').forEach(x=>x.classList.remove('on'));b.classList.add('on');ALGO=b.dataset.v});
 document.querySelectorAll('#vans button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#vans button').forEach(x=>x.classList.remove('on'));b.classList.add('on');VAN=+b.dataset.v;draw()});
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('on'));
-  b.classList.add('on');
-  TAB=b.dataset.t;
-  if(TAB==='nn'){ NN_ON=!NN_ON; b.textContent=`NN ${NN_ON?'on/off':'off'}`; }
+  b.classList.add('on');TAB=b.dataset.t;
+  if(TAB==='nn'){MODEL=(MODEL==='NN')?'distance':'NN';b.textContent=`NN ${MODEL==='NN'?'ON':'OFF (distance model)'}`;run();return}
   draw();
 });
-function rnd(s){return()=>{s=(s*1664525+1013904223)%4294967296;return s/4294967296}}
-function pred(a,b,h){let t=12+((a*7+b*13)%18);if(h>=8&&h<=10)t+=10;if(h>=17&&h>=19)t+=12;return t*1.2}
-function run(){
-let s=+seed.value,n=+n.value,R=rnd(s);ORDERS=[];
-for(let i=0;i<n;i++){let z=130+Math.floor(R()*20);let st=9*60+Math.floor(R()*240);let w=[30,45,60][Math.floor(R()*3)];ORDERS.push({id:i,zone:z,tw:[st,st+w]})}
-if(n>12){ORDERS[7].tw=[600,630];ORDERS[12].tw=[610,640];ORDERS[7].zone=161;ORDERS[12].zone=233}
-let diff=ORDERS.map(()=>ORDERS.map(()=>false));
-for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){let a=ORDERS[i],b=ORDERS[j],ok=false;
-for(let [X,Y] of [[a,b],[b,a]]){let t=pred(X.zone,Y.zone,X.tw[0]/60|0);if(540+12<=X.tw[1]&&Math.max(X.tw[0]+3+t,Y.tw[0])<=Y.tw[1]){ok=true;break}}
-if(!ok)diff[i][j]=diff[j][i]=true}
-ASSIGN={};let order=[...Array(n).keys()].sort((a,b)=>diff[b].filter(Boolean).length-diff[a].filter(Boolean).length);
-for(let v of order){for(let van=0;van<3;van++){if(Object.entries(ASSIGN).some(([k,val])=>val===van&&diff[v][k]))continue;ASSIGN[v]=van;break}if(!(v in ASSIGN))ASSIGN[v]=0}
-ROUTES={0:[],1:[],2:[]};Object.entries(ASSIGN).forEach(([k,v])=>ROUTES[v].push(+k));
-for(let v=0;v<3;v++)ROUTES[v].sort((a,b)=>ORDERS[a].tw[0]-ORDERS[b].tw[0]);
-msg.textContent=`CSP done (${ALGO} per van). Late pair would become new different-van rule, re-run ≤5.`;
-trace.textContent=`Van ${VAN}: Expanded ${Math.floor(120+n*3.5)} nodes, Generated ${Math.floor(340+n*8.2)} nodes using ${ALGO} (NN heuristic ${NN_ON?'enabled':'disabled'}).`;
-draw(true);
+async function api(path,body){
+  const r=await fetch(path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+  const j=await r.json();if(j.error)throw new Error(j.error);return j;
+}
+function params(){return {seed:+$('seed').value,n:+$('n').value,algo:ALGO,model:MODEL,widen:WIDEN}}
+async function run(){
+  $('msg').textContent='Solving: NN matrix → CSP (BT+FC+AC-3) → '+ALGO+' per van …';
+  try{DATA=await api('/api/solve',params())}catch(e){$('msg').textContent='Server error: '+e.message;return}
+  if(!DATA.ok){
+    $('msg').textContent=DATA.status+(WIDEN?` (windows widened ${WIDEN}×15 min)`:'')+' — try “Widen windows”.';
+    ['s_on','s_t','s_l'].forEach(i=>$(i).textContent='–');$('s_u').textContent='1';$('list').innerHTML='';$('trace').textContent='';return;
+  }
+  const f=DATA.forced_pair;
+  $('msg').textContent=`${DATA.status} · model=${DATA.model==='NN'?'Neural network':'distance baseline'} · CSP nodes ${DATA.csp.nodes}, backtracks ${DATA.csp.backtracks}`+
+    (f?` · orders 7 & 12 → vans ${f.van_a} & ${f.van_b} ${f.van_a!==f.van_b?'(split ✔)':'(SAME VAN ✘)'}`:'')+` · ${DATA.runtime_s}s`;
+  draw(true);
 }
 function draw(c){
-let ids=ROUTES[VAN]||[],clock=540,cur=162,late=0,tot=0;list.innerHTML='';
-let fmt=m=>`${String(m/60|0).padStart(2,'0')}:${String((m%60|0)).padStart(2,'0')}`;
-if(TAB==='trace'){
-  list.innerHTML=`<div style="padding:14px;background:rgba(255,255,255,.5);border-radius:16px;border:1px solid var(--line)"><b>Search Trace Details — Van ${VAN} (${ALGO})</b><br><br>• Priority Queue initial size: 1<br>• Nodes expanded: ${Math.floor(120+ids.length*4)}<br>• Nodes generated: ${Math.floor(350+ids.length*10)}<br>• Heuristic function: Time-window heuristic + NN distance (${NN_ON?'Active':'Bypassed'})<br>• Max frontier size: 42</div>`;
-}else if(TAB==='prune'){
-  list.innerHTML=`<div style="padding:14px;background:rgba(255,255,255,.5);border-radius:16px;border:1px solid var(--line)"><b>Pruning Metrics — Van ${VAN}</b><br><br>• Time-window pruning: ${(ids.length*2)+3} states pruned<br>• Triangle inequality checks: 14 passed, 2 pruned<br>• Capacity / feasibility cuts: ${ids.length > 6 ? 2 : 0} infeasible order combos skipped</div>`;
-}else{
-  ids.forEach(oid=>{let o=ORDERS[oid];let t=pred(cur,o.zone,clock/60|0);let arr=clock+t;let okk=arr<=o.tw[1];if(!okk)late++;tot+=t;
-  list.innerHTML+=`<li><div class="dot ${okk?'ok':'bad'}"></div><div class=meta><b>Order ${oid}</b> · zone ${o.zone} · ${fmt(o.tw[0])}–${fmt(o.tw[1])}<br><span>arr ${fmt(arr|0)} · ride ${t.toFixed(0)} min · +3 min service</span></div><div style="margin-left:auto"><span class="pill ${okk?'ok':'late'}">${okk?'on-time':'late'}</span></div></li>`;
-  clock=Math.max(arr,o.tw[0])+3;cur=o.zone});
+  if(!DATA||!DATA.ok){return}
+  const v=DATA.vans[String(VAN)]||{stops:[],drive_min:0,late:0,expanded:0,generated:0},list=$('list');list.innerHTML='';
+  $('trace').textContent=`Van ${VAN}: ${ALGO} expanded ${v.expanded} · generated ${v.generated}${v.timed_out?' · TIMED OUT':''} · load ${v.load||0}/${v.capacity||15}`;
+  if(TAB==='trace'){
+    list.innerHTML=`<div style="${box}"><b>Search trace — Van ${VAN} (${DATA.algo})</b><br><br>• Orders on this van: ${v.stops.length}<br>• Nodes expanded: <b>${v.expanded}</b><br>• Nodes generated: <b>${v.generated}</b><br>• Route drive time: <b>${v.drive_min} min</b><br>• Visit order: ${v.stops.map(s=>s.id).join(' → ')||'—'}<br>• Integration loops used (≤5): <b>${DATA.loops}</b><br>• CSP: ${DATA.csp.nodes} nodes · ${DATA.csp.assignments} assignments · ${DATA.csp.backtracks} backtracks</div>`;
+  }else if(TAB==='prune'){
+    list.innerHTML=`<div style="${box}"><b>Pruning — CSP (whole fleet)</b><br><br>• Nodes: <b>${DATA.csp.nodes}</b> · assignments <b>${DATA.csp.assignments}</b> · backtracks <b>${DATA.csp.backtracks}</b><br>• Run the same seed with BT vs BT+FC vs BT+FC+AC-3 (python -m src.eval --exp 2) to show node counts shrinking.<br><br><b>Search (Van ${VAN})</b><br>• ${DATA.algo}: expanded ${v.expanded} / generated ${v.generated}<br>• Switch to UCS or Greedy and press Assign + Route to compare.</div>`;
+  }else{
+    v.stops.forEach(s=>{list.innerHTML+=`<li><div class="dot ${s.on_time?'ok':'bad'}"></div><div class=meta><b>Order ${s.id}</b> · zone ${s.zone} · window ${s.tw_txt}<br><span>arrive ${s.arrive} · NN ride ${s.ride} min${s.wait?` · wait ${s.wait} min`:''} · demand ${s.demand}${s.on_time?'':' · LATE'}</span></div></li>`});
+    if(!v.stops.length)list.innerHTML='<li><div class=meta>No orders on this van.</div></li>';
+  }
+  if(c){$('s_on').textContent=DATA.on_time_pct+'%';$('s_t').textContent=DATA.drive_total.toFixed(0);$('s_l').textContent=DATA.loops;$('s_u').textContent=DATA.unserviceable}
 }
-if(c){s_on.textContent=ids.length?Math.round((ids.length-late)/ids.length*100)+'%':'–';s_t.textContent=tot.toFixed(0);s_l.textContent='1';s_u.textContent=late>1?'1':'0'}
+async function replay(){
+  $('msg').textContent='Replaying plans on real travel times …';
+  let r;try{r=await api('/api/replay',params())}catch(e){$('msg').textContent='Server error: '+e.message;return}
+  LAST_REPLAY=r;
+  const best=Math.min(...r.rows.filter(x=>x.late!=null).map(x=>x.late));
+  $('list').innerHTML=`<div style="${box}"><b>Replay — plan with each model, drive on real times</b><br><span class=small>${r.note}</span><br><br>`+
+    r.rows.map(x=>`• <b>${x.model}</b>: ${x.late==null?x.status:`${x.late} late of ${x.stops} (${x.on_time_pct}% on-time)${x.late===best?' ✔ best':''}`}`).join('<br>')+`</div>`;
+  $('msg').textContent='Replay done — '+r.note;
 }
-function replay(){msg.textContent='Replay: legs replaced by held-out real trips (same zone-pair-hour). Lateness recounted for NN vs avg vs distance.';draw(true)}
-function widen(){ORDERS.forEach(o=>{o.tw=[o.tw[0]-15,o.tw[1]+15]});msg.textContent='Windows widened ±15 min. Re-run Assign + Route.';draw(true)}
+function widen(){WIDEN++;run()}
+api('/api/meta').then(m=>{META=m;
+  if(!m.nn_real)document.title='Dispatch (synthetic matrix)';
+  const w=m.nn_real?'':' ⚠ using SYNTHETIC time matrix — run make_data.py + python -m src.nn first.';
+  $('trace').textContent='backend connected.'+w}).catch(()=>{$('msg').textContent='Backend not running — start it with: python server.py'});
 run();
 </script>
