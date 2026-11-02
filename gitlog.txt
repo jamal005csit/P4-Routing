@@ -1,9 +1,21 @@
 # Git history snapshot
 # Regenerate with: git log --oneline --decorate --all > gitlog.txt
+fc09ea4 docs: withdraw superseded Experiment 3 results
+2a7c4af docs: document corrected Experiment 3 evaluation protocol
+9a7685f docs: correct contribution statement test count
+3e89fa6 test: correct Experiment 3 route replay regression test
+15faa88 test: cover Experiment 3 route replay and solved-rate aggregation
+430612b eval: fix Experiment 3 route replay and solve-rate aggregation
+adfefeb integration: preserve optimized route order
+3b5b42f feat: new modifications
+689e5da docs: update report with latest experiment results
+b166db9 docs: record final README correction in git log
+ad27875 docs: correct test case category counts
+578706a docs: include automated test workflow in git log
 203e8b7 ci: run pytest automatically on pushes and pull requests
 36a7d85 docs: document automatic GitHub Actions test workflow
 be6d9ee docs: add explicit NN on/off demo commands
-3d6ac28 demo: add explicit NN-on and NN-off travel model modes
+3d6ac28 demo: add explicit NN on/off travel model modes
 6d78ddd docs: finalize individual contribution statement
 a14e533 docs: link presentation plan and clarify experiment regeneration
 4dd11a9 eval: report standard deviations for CSP counters
@@ -14,45 +26,7 @@ f6d4a85 docs: align report with corrected validation and evaluation pipeline
 294471c docs: complete data dictionary and clarify generated constraints
 dffb469 feat: update local modifications
 ff26c6d chore: update gitlog.txt with latest commits
-b22a5c2 Update CONTRIBUTORS.md
-a05dd3a Update report.md
+b22a5c2 docs: update contributors
+a05dd3a docs: update report
 b8e4d82 exp1 + report mod
-81c70da Revise experiment results and observations in report.md
-e883649 Increase node cap and timeout for CSP solver
-d1f9615 Update cost calculation in search.py
-7f05669 Add files via upload
-f41d6fd Add files via upload
-22eb2d9 Add results folder and contents
-d8b66eb Revise technical report on P4-Routing
-5aaed7f Create check_csp.py
-4296b40 Enhance data filtering by trip distance
-43a9078 Add cost_solved and solved_rate to aggregation
-063b61b Add results directory creation and main guard
-1f31169 Change torch dependency to specific version 2.10.0
-5203b76 Update gitlog.txt with recent commit history
-e074d2b Add files via upload
-3efd78c Refactor run_demo.py for improved functionality
-10d2ffd Enhance README with installation and demo output details
-3518e25 Update package versions in requirements.txt
-3ebe5f1 Add results folder and contents
-5ec6677 Update README with server execution steps
-cd42410 feat: add server.py and update ui index
-8c84ac6 feat: finalize P4-Routing core modules, search and evaluation pipeline
-d36dd26 Create __init__.py
-38bd713 Rename src/run_demo.py to run_demo.py
-cbd5536 Add command to generate git log to gitlog.txt
-2cba38a Create CONTRIBUTORS.md to document project contributions
-a4ba1e3 Add initial HTML structure for Dispatch app
-5eed8d6 Add technical report on P4-Routing architecture
-c095156 Add eval.py for running experiments and saving results
-00f0c40 Implement tests for routing algorithms
-0685e77 Add initial requirements for project dependencies
-9a37823 Add run_demo.py to generate and visualize results
-5fcdaad Implement solve_all and widen functions in integration.py
-11b35ec Add CSP solver with backtracking and AC-3 methods
-563bcb7 Implement route optimization algorithms in search.py
-0f9b20d Implement TripNN model for trip duration prediction
-e439508 Create DATA_DICTIONARY.md for dataset documentation
-a8e2c80 Add generate function to create orders data
-02123c2 Add data processing script for taxi trip data
-74ad3e2 Initial commit
+81c70da docs: revise experiment results
