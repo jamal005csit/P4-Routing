@@ -91,7 +91,6 @@ Setup: seeds 0–4 for every experiment; mean and standard deviation reported ov
 
 The solved rate is the share of random instances where one van can serve all k orders within their windows. Only 40–60% are feasible, so the mean cost is taken over solved instances only. A* and UCS agree on every solved instance. Greedy's cost includes waiting time, as A*'s does. On the solved instances Greedy matches A* at k = 6–9 and is slightly worse at k = 10 (211.2 vs 210.6), so its route is near-optimal on these instances but not guaranteed to be optimal.
 
-Observations (verified in both runs): A\* and UCS return identical costs for every k, as expected from two optimal algorithms. A\* expands slightly **more** nodes than UCS in these runs (about 1,720 vs 1,600 at k=10), so the heuristic did not reduce search effort on this data. A\* is only expected to help when h is informative. Greedy frequently fails to find any order (the 9999 value is a penalty for no solution), so its costs are not comparable.
 
 **Experiment 2: CSP pruning (BT / BT+FC / BT+FC+AC-3)**
 
