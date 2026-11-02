@@ -50,7 +50,9 @@ python run_demo.py --seed 7
 
 ## Testing
 
-Run the test suite in quiet mode:
+GitHub Actions runs the test suite on pushes to `main` and pull requests targeting `main`.
+
+Run the test suite locally in quiet mode:
 ```bash
 pytest -q
 ```
