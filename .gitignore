@@ -1,0 +1,17 @@
+# Bytecode and caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Large data files and datasets
+*.parquet
+*.csv
+*.json
+
+# Results and experiment outputs
+results/
+
+# IDE and OS files
+.vscode/
+.idea/
+Thumbs.db
