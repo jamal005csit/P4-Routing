@@ -1,1 +1,24 @@
-git log --oneline --graph > gitlog.txt
+* 3ebe5f1 Add results folder and contents
+* 5ec6677 Update README with server execution steps
+* cd42410 feat: add server.py and update ui index
+* 8c84ac6 feat: finalize P4-Routing core modules, search and evaluation pipeline
+* d36dd26 Create __init__.py
+* 38bd713 Rename src/run_demo.py to run_demo.py
+* cbd5536 Add command to generate git log to gitlog.txt
+* 2cba38a Create CONTRIBUTORS.md to document project contributions
+* a4ba1e3 Add initial HTML structure for Dispatch app
+* 5eed8d6 Add technical report on P4-Routing architecture
+* c095156 Add eval.py for running experiments and saving results
+* 00f0c40 Implement tests for routing algorithms
+* 0685e77 Add initial requirements for project dependencies
+* 9a37823 Add run_demo.py to generate and visualize results
+* 5fcdaad Implement solve_all and widen functions in integration.py
+* 11b35ec Add CSP solver with backtracking and AC-3 methods
+* 563bcb7 Implement route optimization algorithms in search.py
+* 0f9b20d Implement TripNN model for trip duration prediction
+* e439508 Create DATA_DICTIONARY.md for dataset documentation
+* a8e2c80 Add generate function to create orders data
+* 02123c2 Add data processing script for taxi trip data
+* 1e6f626 Enhance README with installation and execution details
+* aebc0fc Update README with installation and usage commands
+* 74ad3e2 Initial commit
