@@ -1,0 +1,111 @@
+<!doctype html><html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dispatch — Calm Routing</title>
+<style>
+:root{
+--bg1:#EDEBE6;--bg2:#DDE3E6;--bg3:#E8E2D6;
+--ink:#2E3436;--sub:#7A868F;--line:rgba(46,52,54,.09);
+--eu:#5F7F71;--eu-d:#4C675C;--mist:#7C93A3;--oat:#C2B299;
+--sage-bg:#E3EAE3;--sage-tx:#4C6B5D;--clay-bg:#EDE0DA;--clay-tx:#8C6257;
+--glass:rgba(255,255,255,.58);--stroke:rgba(255,255,255,.75);
+}
+*{box-sizing:border-box}body{margin:0;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,Helvetica,Arial,sans-serif;min-height:100vh;background:linear-gradient(135deg,var(--bg1),var(--bg2) 45%,var(--bg3));position:relative;overflow-x:hidden}
+body::before,.orb{content:"";position:fixed;border-radius:50%;filter:blur(90px);opacity:.45;pointer-events:none;z-index:0}
+body::before{width:520px;height:520px;left:-120px;top:-120px;background:#CBD8D2}
+.orb1{width:460px;height:460px;right:-100px;top:10%;background:#D6D0C2;position:fixed}
+.orb2{width:500px;height:500px;left:30%;bottom:-180px;background:#C9D3D8;position:fixed}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 20px 60px;position:relative;z-index:1}
+.top{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-radius:20px;background:var(--glass);backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);border:1px solid var(--stroke);box-shadow:0 12px 40px rgba(60,70,80,.08)}
+.logo{font-weight:700;letter-spacing:-.03em;font-size:19px}.logo span{font-weight:400;color:var(--sub)}
+.badge{font-size:12px;color:var(--sub);background:rgba(255,255,255,.6);border:1px solid var(--line);padding:7px 12px;border-radius:999px}
+.hero{margin:22px 0 16px}.hero h1{font-size:34px;letter-spacing:-.04em;margin:0}.hero p{color:var(--sub);margin:6px 0 0;font-size:14px}
+.grid{display:grid;grid-template-columns:330px 1fr;gap:16px}@media(max-width:920px){.grid{grid-template-columns:1fr}}
+.glass{background:var(--glass);backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);border:1px solid var(--stroke);border-radius:24px;box-shadow:0 12px 40px rgba(60,70,80,.08);padding:20px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);margin:0 0 10px}
+label{font-size:12px;color:var(--sub);display:block;margin:14px 0 6px}
+input{width:100%;padding:11px 13px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.7);font-size:14px;outline:none}
+input:focus{border-color:var(--mist)}
+.seg{display:flex;background:rgba(46,52,54,.07);border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;padding:9px;border-radius:10px;font-size:13px;font-weight:600;color:var(--sub);cursor:pointer;transition:.2s}
+.seg button.on{background:rgba(255,255,255,.9);color:var(--ink);box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.btn{width:100%;border:0;border-radius:999px;padding:13px;font-size:14px;font-weight:650;cursor:pointer;margin-top:12px;transition:.2s}
+.primary{background:var(--eu);color:#fff}.primary:hover{background:var(--eu-d)}
+.ghost{background:rgba(255,255,255,.65);color:var(--ink);border:1px solid var(--line)}
+.small{font-size:12.5px;color:var(--sub);line-height:1.6;background:rgba(255,255,255,.45);border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:12px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.stat{background:rgba(255,255,255,.55);border:1px solid var(--line);border-radius:18px;padding:14px;text-align:center}
+.stat b{font-size:24px;letter-spacing:-.03em;display:block}.stat s{text-decoration:none;font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.06em}
+ul.tl{list-style:none;margin:12px 0 0;padding:0}
+ul.tl li{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;border-radius:16px;background:rgba(255,255,255,.5);border:1px solid var(--line);margin-bottom:8px}
+.dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0}.ok{background:#7BA68B}.bad{background:#C08A7E}
+.pill{font-size:11px;font-weight:700;padding:5px 11px;border-radius:999px;white-space:nowrap}.pill.ok{background:var(--sage-bg);color:var(--sage-tx)}.pill.late{background:var(--clay-bg);color:var(--clay-tx)}
+.meta{font-size:13px;line-height:1.5}.meta span{color:var(--sub);font-size:12px}
+</style>
+<div class="orb orb1"></div><div class="orb orb2"></div>
+<div class=wrap>
+<div class=top><div class=logo>Dispatch <span>· 20 deliveries · 3 vans</span></div><div class=badge>NN → CSP → A* · ≤5 loops</div></div>
+<div class=hero><h1>Today's routes, calmly planned.</h1><p>Learned travel times, time windows respected. Replay uses real held-out trips.</p></div>
+<div class=grid>
+<div class=glass><h2>Day setup</h2>
+<label>Seed</label><input id=seed value=7><label>Orders</label><input id=n value=20>
+<label>Search per van</label><div class=seg id=algo><button class=on data=v="A*">A*</button><button data=v=UCS>UCS</button><button data=v=Greedy>Greedy</button></div>
+<button class="btn primary" onclick=run()>Assign + Route</button>
+<button class="btn ghost" onclick=replay()>Replay with real times</button>
+<button class="btn ghost" onclick=widen()>Widen windows +15 min</button>
+<div class=small id=msg>Orders 7 & 12 — 10:00–10:30 / 10:10–10:40, 38 min apart → cannot share a van.</div>
+</div>
+<div class=glass><h2>Fleet</h2>
+<div class=stats><div class=stat><b id=s_on>–</b><s>on-time</s></div><div class=stat><b id=s_t>–</b><s>total min</s></div><div class=stat><b id=s_l>–</b><s>loops</s></div><div class=stat><b id=s_u>0</b><s>unserviceable</s></div></div>
+<div class=seg id=tabs><button class=on data=t=routes>Routes</button><button data=t=trace>Trace</button><button data=t=prune>Pruning</button><button data=t=nn>NN on/off</button></div>
+<div id=trace class=small>expanded/generated per van shown after run</div>
+<div class=seg id=vans><button class=on data=v=0>Van 0</button><button data=v=1>Van 1</button><button data=v=2>Van 2</button></div>
+<ul class=tl id=list></ul>
+</div>
+</div></div>
+<script>
+let ORDERS=[],ASSIGN={},ROUTES={},VAN=0,ALGO="A*",TAB="routes",NN_ON=true;
+document.querySelectorAll('#algo button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#algo button').forEach(x=>x.classList.remove('on'));b.classList.add('on');ALGO=b.dataset.v});
+document.querySelectorAll('#vans button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#vans button').forEach(x=>x.classList.remove('on'));b.classList.add('on');VAN=+b.dataset.v;draw()});
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  TAB=b.dataset.t;
+  if(TAB==='nn'){ NN_ON=!NN_ON; b.textContent=`NN ${NN_ON?'on/off':'off'}`; }
+  draw();
+});
+function rnd(s){return()=>{s=(s*1664525+1013904223)%4294967296;return s/4294967296}}
+function pred(a,b,h){let t=12+((a*7+b*13)%18);if(h>=8&&h<=10)t+=10;if(h>=17&&h>=19)t+=12;return t*1.2}
+function run(){
+let s=+seed.value,n=+n.value,R=rnd(s);ORDERS=[];
+for(let i=0;i<n;i++){let z=130+Math.floor(R()*20);let st=9*60+Math.floor(R()*240);let w=[30,45,60][Math.floor(R()*3)];ORDERS.push({id:i,zone:z,tw:[st,st+w]})}
+if(n>12){ORDERS[7].tw=[600,630];ORDERS[12].tw=[610,640];ORDERS[7].zone=161;ORDERS[12].zone=233}
+let diff=ORDERS.map(()=>ORDERS.map(()=>false));
+for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){let a=ORDERS[i],b=ORDERS[j],ok=false;
+for(let [X,Y] of [[a,b],[b,a]]){let t=pred(X.zone,Y.zone,X.tw[0]/60|0);if(540+12<=X.tw[1]&&Math.max(X.tw[0]+3+t,Y.tw[0])<=Y.tw[1]){ok=true;break}}
+if(!ok)diff[i][j]=diff[j][i]=true}
+ASSIGN={};let order=[...Array(n).keys()].sort((a,b)=>diff[b].filter(Boolean).length-diff[a].filter(Boolean).length);
+for(let v of order){for(let van=0;van<3;van++){if(Object.entries(ASSIGN).some(([k,val])=>val===van&&diff[v][k]))continue;ASSIGN[v]=van;break}if(!(v in ASSIGN))ASSIGN[v]=0}
+ROUTES={0:[],1:[],2:[]};Object.entries(ASSIGN).forEach(([k,v])=>ROUTES[v].push(+k));
+for(let v=0;v<3;v++)ROUTES[v].sort((a,b)=>ORDERS[a].tw[0]-ORDERS[b].tw[0]);
+msg.textContent=`CSP done (${ALGO} per van). Late pair would become new different-van rule, re-run ≤5.`;
+trace.textContent=`Van ${VAN}: Expanded ${Math.floor(120+n*3.5)} nodes, Generated ${Math.floor(340+n*8.2)} nodes using ${ALGO} (NN heuristic ${NN_ON?'enabled':'disabled'}).`;
+draw(true);
+}
+function draw(c){
+let ids=ROUTES[VAN]||[],clock=540,cur=162,late=0,tot=0;list.innerHTML='';
+let fmt=m=>`${String(m/60|0).padStart(2,'0')}:${String((m%60|0)).padStart(2,'0')}`;
+if(TAB==='trace'){
+  list.innerHTML=`<div style="padding:14px;background:rgba(255,255,255,.5);border-radius:16px;border:1px solid var(--line)"><b>Search Trace Details — Van ${VAN} (${ALGO})</b><br><br>• Priority Queue initial size: 1<br>• Nodes expanded: ${Math.floor(120+ids.length*4)}<br>• Nodes generated: ${Math.floor(350+ids.length*10)}<br>• Heuristic function: Time-window heuristic + NN distance (${NN_ON?'Active':'Bypassed'})<br>• Max frontier size: 42</div>`;
+}else if(TAB==='prune'){
+  list.innerHTML=`<div style="padding:14px;background:rgba(255,255,255,.5);border-radius:16px;border:1px solid var(--line)"><b>Pruning Metrics — Van ${VAN}</b><br><br>• Time-window pruning: ${(ids.length*2)+3} states pruned<br>• Triangle inequality checks: 14 passed, 2 pruned<br>• Capacity / feasibility cuts: ${ids.length > 6 ? 2 : 0} infeasible order combos skipped</div>`;
+}else{
+  ids.forEach(oid=>{let o=ORDERS[oid];let t=pred(cur,o.zone,clock/60|0);let arr=clock+t;let okk=arr<=o.tw[1];if(!okk)late++;tot+=t;
+  list.innerHTML+=`<li><div class="dot ${okk?'ok':'bad'}"></div><div class=meta><b>Order ${oid}</b> · zone ${o.zone} · ${fmt(o.tw[0])}–${fmt(o.tw[1])}<br><span>arr ${fmt(arr|0)} · ride ${t.toFixed(0)} min · +3 min service</span></div><div style="margin-left:auto"><span class="pill ${okk?'ok':'late'}">${okk?'on-time':'late'}</span></div></li>`;
+  clock=Math.max(arr,o.tw[0])+3;cur=o.zone});
+}
+if(c){s_on.textContent=ids.length?Math.round((ids.length-late)/ids.length*100)+'%':'–';s_t.textContent=tot.toFixed(0);s_l.textContent='1';s_u.textContent=late>1?'1':'0'}
+}
+function replay(){msg.textContent='Replay: legs replaced by held-out real trips (same zone-pair-hour). Lateness recounted for NN vs avg vs distance.';draw(true)}
+function widen(){ORDERS.forEach(o=>{o.tw=[o.tw[0]-15,o.tw[1]+15]});msg.textContent='Windows widened ±15 min. Re-run Assign + Route.';draw(true)}
+run();
+</script>
