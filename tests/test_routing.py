@@ -116,3 +116,42 @@ def test_impossible_ac3_empty_domain():
     solver = CSP(inst, diff)
     domains = [{0}, {0}]
     assert solver.ac3(domains) is False
+
+
+
+def test_exp3_replays_route_order_instead_of_sorting_time_windows():
+    from src.eval import _replay_route
+
+    orders = {
+        0: {"id": 0, "zone": 2, "tw": [540, 545], "service": 0},
+        1: {"id": 1, "zone": 3, "tw": [550, 560], "service": 0},
+    }
+    zi = {1: 0, 2: 1, 3: 2}
+    matrix = np.ones((3, 3, 24), dtype=float)
+    matrix[0, 1, :] = 50.0
+    matrix[0, 2, :] = 1.0
+    matrix[2, 1, :] = 1.0
+
+    replay = _replay_route([1, 0], orders, matrix, zi, 540, 1)
+
+    assert replay["late"] == 1
+    assert replay["late_minutes"] == pytest.approx(6.0)
+    assert replay["on_time_rate"] == pytest.approx(0.5)
+
+
+def test_exp3_solved_rate_includes_failed_attempts():
+    import pandas as pd
+    from src.eval import _aggregate_exp3
+
+    raw = pd.DataFrame([
+        {"seed": 0, "model": "NN", "late": 2, "late_minutes": 8.0,
+         "max_late_minutes": 5.0, "on_time_rate": 0.5, "solved": True},
+        {"seed": 1, "model": "NN", "late": np.nan, "late_minutes": np.nan,
+         "max_late_minutes": np.nan, "on_time_rate": np.nan, "solved": False},
+    ])
+    aggregate = _aggregate_exp3(raw).iloc[0]
+
+    assert aggregate["solved_rate"] == pytest.approx(0.5)
+    assert aggregate["attempts"] == 2
+    assert aggregate["solved_runs"] == 1
+    assert aggregate["mean_late"] == pytest.approx(2.0)
