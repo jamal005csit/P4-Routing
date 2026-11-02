@@ -9,7 +9,7 @@ def run(month="2023-01", seed=0):
     df["pickup"]=pd.to_datetime(df["tpep_pickup_datetime"])
     df["dropoff"]=pd.to_datetime(df["tpep_dropoff_datetime"])
     df["duration"]=(df["dropoff"]-df["pickup"]).dt.total_seconds()/60
-    df=df[(df.duration>=1)&(df.duration<=120)]
+    df=df[(df.duration>=1)&(df.duration<=120)&(df.trip_distance>0)&(df.trip_distance<=100)]  # drop bad meter readings (one row was 116,439 miles)
     df["hour"]=df.pickup.dt.hour
     df["weekday"]=df.pickup.dt.weekday
     df["day"]=df.pickup.dt.day
