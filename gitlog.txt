@@ -1,5 +1,8 @@
 # Git history snapshot
 # Regenerate with: git log --oneline --decorate --all > gitlog.txt
+b407681 test: correct replay lateness expectation
+e02c98f docs: refresh Git history snapshot
+# Regenerate with: git log --oneline --decorate --all > gitlog.txt
 4aa8d76 test: handle empty vans in route-order assertion
 0565b2b ci: install pandas and matplotlib for evaluator tests
 b5bbf48 docs: update report test count and verification status
