@@ -128,14 +128,14 @@ def test_exp3_replays_route_order_instead_of_sorting_time_windows():
     }
     zi = {1: 0, 2: 1, 3: 2}
     matrix = np.ones((3, 3, 24), dtype=float)
-    matrix[0, 1, :] = 50.0
+    matrix[0, 1, :] = 1.0
     matrix[0, 2, :] = 1.0
-    matrix[2, 1, :] = 1.0
+    matrix[2, 1, :] = 50.0
 
     replay = _replay_route([1, 0], orders, matrix, zi, 540, 1)
 
     assert replay["late"] == 1
-    assert replay["late_minutes"] == pytest.approx(6.0)
+    assert replay["late_minutes"] == pytest.approx(46.0)
     assert replay["on_time_rate"] == pytest.approx(0.5)
 
 
