@@ -32,6 +32,8 @@ def solve_all(inst, mat, zi, algo="A*", mode="BT+FC+AC-3"):
                     "stats": {"nodes": c.nodes, "assignments": c.assignments, "backtracks": c.backtracks}}
 
         routes = {v: [o for o, a in assign.items() if a == v] for v in range(inst["vans"])}
+        # Preserve the optimized visit order separately from CSP assignment membership.
+        route_paths = {}
         late = None
         for v, oids in routes.items():
             if not oids:
@@ -43,6 +45,7 @@ def solve_all(inst, mat, zi, algo="A*", mode="BT+FC+AC-3"):
                     break
                 return {"status": f"NO SOLUTION: NO_FEASIBLE_ORDER van {v} single {oids[0]}",
                         "reason": "NO_FEASIBLE_ORDER", "assign": assign}
+            route_paths[v] = path
             clock, cur = inst["depot_start"], depot
             mp = {o["id"]: o for o in inst["orders"]}
             for idx, oid in enumerate(path):
@@ -57,7 +60,8 @@ def solve_all(inst, mat, zi, algo="A*", mode="BT+FC+AC-3"):
                 break
 
         if late is None:
-            return {"status": "OK", "assign": assign, "routes": routes, "loops": it,
+            return {"status": "OK", "assign": assign, "routes": routes,
+                    "route_paths": route_paths, "loops": it,
                     "csp_stats": {"nodes": c.nodes, "assignments": c.assignments, "backtracks": c.backtracks}}
         if late[0] == late[1]:
             return {"status": f"NO SOLUTION: NO_FEASIBLE_ORDER late pair {late}",
