@@ -1,5 +1,6 @@
 # Git history snapshot
 # Regenerate with: git log --oneline --decorate --all > gitlog.txt
+203e8b7 ci: run pytest automatically on pushes and pull requests
 be6d9ee docs: add explicit NN on/off demo commands
 3d6ac28 demo: add explicit NN-on and NN-off travel model modes
 6d78ddd docs: finalize individual contribution statement
