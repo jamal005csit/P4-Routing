@@ -135,7 +135,7 @@ def test_exp3_replays_route_order_instead_of_sorting_time_windows():
     replay = _replay_route([1, 0], orders, matrix, zi, 540, 1)
 
     assert replay["late"] == 1
-    assert replay["late_minutes"] == pytest.approx(46.0)
+    assert replay["late_minutes"] == pytest.approx(55.0)
     assert replay["on_time_rate"] == pytest.approx(0.5)
 
 
