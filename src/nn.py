@@ -30,6 +30,7 @@ def train(epochs=30):
         if pat>=4: break
     evaluate_baselines(tr,te,teT); export_matrix()
 def evaluate_baselines(tr,te,teT):
+    import os; os.makedirs("results", exist_ok=True)
     # (a) hist-avg per pair-hour (b) distance-based time=dist/18mph*60
     key=list(zip(tr.PULocationID,tr.DOLocationID,tr.hour))
     from collections import defaultdict; import numpy as np
@@ -60,3 +61,6 @@ def export_matrix():
                 for h in range(24):
                     mat[i,j,h]=m(torch.tensor([pu]),torch.tensor([do]),torch.tensor([h]),torch.tensor([2]),torch.tensor([dn])).item()*VAN_FACTOR
     np.save("time_matrix_20x20x24.npy",mat)
+
+if __name__ == "__main__":
+    train()
