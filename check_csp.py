@@ -1,5 +1,6 @@
 # Run from the repo root:  python check_csp.py
 # Checks whether BT, BT+FC and BT+FC+AC-3 really prune, on the real time matrix.
+# Node cap is high (300k) so timeouts do not hide differences between modes; this can take minutes.
 import numpy as np
 from src.data import generate
 from src.csp import build_diff_matrix, CSP
@@ -12,7 +13,7 @@ for seed in range(5):
     conflicts = int(sum(sum(1 for x in row if x) for row in diff)) // 2
     out = []
     for mode in ["BT", "BT+FC", "BT+FC+AC-3"]:
-        c = CSP(inst, diff, max_nodes=20000, time_limit=1.0)
+        c = CSP(inst, diff, max_nodes=300000, time_limit=30.0)
         r = c.solve(mode)
         out.append(f"{mode}: nodes={c.nodes} solved={r is not None} timed_out={c.timed_out}")
     print(f"seed {seed} conflict_pairs={conflicts}")
