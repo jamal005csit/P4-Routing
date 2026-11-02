@@ -55,6 +55,12 @@ Run the test suite in quiet mode:
 pytest -q
 ```
 
+The suite covers 5 normal cases, 3 edge cases, and 3 impossible cases, including CSP mode selection and AC-3 domain propagation.
+
+## Presentation
+
+See [PRESENTATION.md](PRESENTATION.md) for the 10-minute presentation outline and 5-minute live-demo script. Regenerate all experiment outputs before presenting numerical results; the committed aggregate CSVs are historical and may not match the corrected evaluation pipeline.
+
 ## Server Execution
 
 Start the web server:
