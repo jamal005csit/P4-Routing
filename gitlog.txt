@@ -1,5 +1,13 @@
 # Git history snapshot
 # Regenerate with: git log --oneline --decorate --all > gitlog.txt
+4aa8d76 test: handle empty vans in route-order assertion
+0565b2b ci: install pandas and matplotlib for evaluator tests
+b5bbf48 docs: update report test count and verification status
+951a7b3 docs: update presentation for corrected Experiment 3
+620bc55 docs: document result regeneration and superseded Experiment 3
+a7171e1 test: assert optimized routes cover assigned orders
+647fcf4 docs: refresh Git history snapshot
+# Regenerate with: git log --oneline --decorate --all > gitlog.txt
 fc09ea4 docs: withdraw superseded Experiment 3 results
 2a7c4af docs: document corrected Experiment 3 evaluation protocol
 9a7685f docs: correct contribution statement test count
