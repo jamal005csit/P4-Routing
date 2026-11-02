@@ -35,6 +35,9 @@ python -m src.nn
 Evaluate the model across multiple experiments and seeds:
 ```bash
 python -m src.eval --exp 1,2,3 --seeds 0,1,2,3,4
+
+# Experiment 3 requires train_20zones.parquet, test_20zones.parquet,
+# top20.json, and a trained time_matrix_20x20x24.npy.
 ```
 
 ### Interactive Demo
@@ -57,11 +60,11 @@ Run the test suite locally in quiet mode:
 pytest -q
 ```
 
-The suite covers 5 normal cases, 4 edge cases, and 3 impossible cases, including CSP mode selection and AC-3 domain propagation.
+The suite covers 5 normal cases, 4 edge cases, 3 impossible cases, and 2 Experiment 3 regression cases. It checks CSP modes, AC-3 propagation, ordered-route replay, and solved-rate aggregation.
 
 ## Presentation
 
-See [PRESENTATION.md](PRESENTATION.md) for the 10-minute presentation outline and 5-minute live-demo script. Regenerate all experiment outputs before presenting numerical results; the committed aggregate CSVs are historical and may not match the corrected evaluation pipeline.
+See [PRESENTATION.md](PRESENTATION.md) for the 10-minute presentation outline and 5-minute live-demo script. Regenerate all experiment outputs before presenting numerical results. Experiment 3 was corrected to replay the optimized visit order and to calculate solved rate over all attempts; previously committed Experiment 3 aggregates are invalid for the corrected evaluator.
 
 ## Server Execution
 
