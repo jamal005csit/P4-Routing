@@ -75,21 +75,21 @@ Setup: seeds 0–4 for every experiment; mean and standard deviation reported ov
 |---|---|---|---|---|---|
 | 6 | A* | 0.6 | 205.0 | 0.000582 | 70.4 |
 | 6 | UCS | 0.6 | 205.0 | 0.000409 | 70.4 |
-| 6 | Greedy | 0.6 | [rerun: Greedy cost now includes waiting] | 0.000039 | 5.4 |
+| 6 | Greedy | 0.6 | 205.0 | 0.000039 | 5.4 |
 | 7 | A* | 0.6 | 210.3 | 0.000943 | 141.8 |
 | 7 | UCS | 0.6 | 210.3 | 0.000814 | 141.6 |
-| 7 | Greedy | 0.6 | [rerun] | 0.000041 | 6.4 |
+| 7 | Greedy | 0.6 | 210.3 | 0.000041 | 6.4 |
 | 8 | A* | 0.4 | 199.0 | 0.001670 | 271.8 |
 | 8 | UCS | 0.4 | 199.0 | 0.001332 | 271.6 |
-| 8 | Greedy | 0.4 | [rerun] | 0.000053 | 7.2 |
+| 8 | Greedy | 0.4 | 199.0 | 0.000053 | 7.2 |
 | 9 | A* | 0.4 | 213.0 | 0.003674 | 551.4 |
 | 9 | UCS | 0.4 | 213.0 | 0.003391 | 549.2 |
-| 9 | Greedy | 0.4 | [rerun] | 0.000067 | 8.2 |
+| 9 | Greedy | 0.4 | 213.0 | 0.000067 | 8.2 |
 | 10 | A* | 0.4 | 210.6 | 0.012989 | 1140.0 |
 | 10 | UCS | 0.4 | 210.6 | 0.008306 | 1133.0 |
-| 10 | Greedy | 0.4 | [rerun] | 0.000091 | 9.2 |
+| 10 | Greedy | 0.4 | 211.2 | 0.000091 | 9.2 |
 
-The solved rate is the share of random instances where one van can serve all k orders within their windows. Only 40–60% are feasible, so the mean cost is taken over solved instances only. A* and UCS agree on every solved instance. Greedy's cost is recomputed after the fix that adds waiting time, so its cost column must be rerun.
+The solved rate is the share of random instances where one van can serve all k orders within their windows. Only 40–60% are feasible, so the mean cost is taken over solved instances only. A* and UCS agree on every solved instance. Greedy's cost includes waiting time, as A*'s does. On the solved instances Greedy matches A* at k = 6–9 and is slightly worse at k = 10 (211.2 vs 210.6), so its route is near-optimal on these instances but not guaranteed to be optimal.
 
 Observations (verified in both runs): A\* and UCS return identical costs for every k, as expected from two optimal algorithms. A\* expands slightly **more** nodes than UCS in these runs (about 1,720 vs 1,600 at k=10), so the heuristic did not reduce search effort on this data. A\* is only expected to help when h is informative. Greedy frequently fails to find any order (the 9999 value is a penalty for no solution), so its costs are not comparable.
 
@@ -107,7 +107,7 @@ Observations (verified in both runs): A\* and UCS return identical costs for eve
 | 30 | BT+FC | 16008.4 | 8925.5 | 0.361919 | 0.2 |
 | 30 | BT+FC+AC-3 | 14906.8 | 8349.6 | 0.794449 | 0.2 |
 
-Observations (real time matrix): at 15 orders all three modes visit the same 16 nodes, and the instances have no pairwise conflicts, so there is nothing to prune. At 20 orders the timeout hides the comparison: in the seeds with conflicts, all three modes hit the 20,000-node cap and fail. The mean of 8,012.6 is exactly 0.6 × 21 + 0.4 × 20,000, so it is a cap artifact, not a pruning result. At 30 orders AC-3 visits slightly fewer nodes (14,907 vs 16,008), but only 20% of instances are solved. The pruning comparison needs a higher node cap (check_csp.py now uses 300,000); until that is rerun, pruning benefits are not demonstrated.
+Observations (real time matrix, node cap 300,000): at 15 orders all modes visit 16 nodes, and the instances have no pairwise conflicts, so there is nothing to prune. On the seeds with conflicts (2 and 4), the CSP is proven infeasible after 73,708 and 105,970 nodes. All three modes visit exactly the same number of nodes in each case, so in this implementation FC and AC-3 do not shrink the search tree on these instances. The result is a limit of our implementation, not evidence that pruning helps or hurts. A stronger AC-3 that revises every arc, and a check of FC's domain wipe-out logic, are needed before the with/without-pruning comparison can be presented.
 
 **Experiment 3: NN vs baselines under replay**
 
