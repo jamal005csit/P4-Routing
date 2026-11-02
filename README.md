@@ -7,7 +7,7 @@ An end-to-end pipeline for dataset generation, neural network training, evaluati
 ## Quick Start
 
 ### 1. Installation
-Install all required dependencies:
+Install all required dependencies:A
 ```bash
 pip install -r requirements.txt
 ```
@@ -50,3 +50,16 @@ Run the test suite in quiet mode:
 ```bash
 pytest -q
 ```
+
+## Server Execution
+
+Start the web server:
+```bash
+python server.py
+```
+
+Access the UI in your browser:
+```bash
+http://localhost:8000
+```
+
