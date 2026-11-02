@@ -19,11 +19,11 @@
 
 ## 5-minute live demonstration
 
-1. **0:00–0:45 — Show the input.** Run `python run_demo.py --seed 7 --widen 0`; point out the generated orders, windows, depot and zones. Explain that the original instance is expected to be infeasible.
+1. **0:00–0:45 — Show the input.** Run `python run_demo.py --seed 7 --widen 0 --travel-model nn`; point out the generated orders, windows, depot and zones. Explain that the original instance is expected to be infeasible.
 2. **0:45–2:00 — Compare CSP modes.** Show the printed BT, BT+FC and BT+FC+AC-3 node, assignment and backtrack counters. Explain that the conflict graph is computed from travel feasibility and no seed-specific conflict is hard-coded in the CSP.
 3. **2:00–3:00 — Show recovery.** Run `python run_demo.py --seed 7 --widen 1`; show the resulting assignment and route status after widening.
 4. **3:00–4:00 — Show search trace.** Point to A*, UCS and Greedy per-van expanded/generated counters and the route visualization in `results/demo.png`.
-5. **4:00–5:00 — NN on versus off.** Explain the NN travel-time matrix path and the synthetic fallback warning. If time permits, show the NN matrix file and the regenerated NN-vs-baseline table. Do not present stale aggregate CSVs as current results.
+5. **4:00–5:00 — NN on versus off.** Re-run with `python run_demo.py --seed 7 --widen 1 --travel-model synthetic` to explicitly disable the NN, then compare with `--travel-model nn`. The synthetic mode is only a demonstration fallback, not a trained non-NN baseline. If time permits, show the regenerated NN-vs-baseline table. Do not present stale aggregate CSVs as current results.
 
 ## Rehearsal checklist
 
