@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import time
 import numpy as np
@@ -159,6 +160,53 @@ def _load_replay_matrices():
     }, replay_matrix, zone_index
 
 
+def _replay_route(path, orders, replay_matrix, zi, depot_start, depot):
+    """Replay an optimized visit sequence against the independent test matrix."""
+    clock = float(depot_start)
+    current_zone = depot
+    late_count = 0
+    total_late_minutes = 0.0
+    max_late_minutes = 0.0
+    on_time = 0
+
+    for order_id in path:
+        order = orders[order_id]
+        travel_time = float(replay_matrix[
+            zi[current_zone], zi[order["zone"]], int(clock // 60) % 24
+        ])
+        arrival = clock + travel_time
+        late_minutes = max(0.0, arrival - float(order["tw"][1]))
+        if late_minutes > 0:
+            late_count += 1
+            total_late_minutes += late_minutes
+            max_late_minutes = max(max_late_minutes, late_minutes)
+        else:
+            on_time += 1
+        clock = max(arrival, float(order["tw"][0])) + float(order["service"])
+        current_zone = order["zone"]
+
+    return {
+        "late": late_count,
+        "late_minutes": total_late_minutes,
+        "max_late_minutes": max_late_minutes,
+        "on_time_rate": on_time / len(path) if path else 1.0,
+    }
+
+
+def _aggregate_exp3(raw):
+    """Aggregate all attempts; failed plans remain in the solved-rate denominator."""
+    return raw.groupby("model").agg(
+        mean_late=("late", "mean"),
+        std_late=("late", "std"),
+        mean_late_minutes=("late_minutes", "mean"),
+        mean_max_late_minutes=("max_late_minutes", "mean"),
+        mean_on_time_rate=("on_time_rate", "mean"),
+        solved_rate=("solved", "mean"),
+        attempts=("seed", "count"),
+        solved_runs=("solved", "sum"),
+    ).reset_index()
+
+
 def exp3(seeds):
     os.makedirs("results", exist_ok=True)
     top20, planning_matrices, replay_matrix, zi = _load_replay_matrices()
@@ -170,42 +218,60 @@ def exp3(seeds):
             if plan["status"] != "OK":
                 rows.append({
                     "seed": seed, "model": model_name, "late": np.nan,
-                    "status": plan["status"], "solved": False,
+                    "late_minutes": np.nan, "max_late_minutes": np.nan,
+                    "on_time_rate": np.nan, "status": plan["status"],
+                    "solved": False, "route_orders": "{}",
                 })
                 continue
 
             orders = {order["id"]: order for order in inst["orders"]}
-            late = 0
-            for van, order_ids in plan["routes"].items():
-                path = sorted(order_ids, key=lambda oid: orders[oid]["tw"][0])
-                clock = float(inst["depot_start"])
-                current_zone = inst["depot"]
-                for order_id in path:
-                    order = orders[order_id]
-                    travel_time = float(replay_matrix[
-                        zi[current_zone], zi[order["zone"]],
-                        int(clock // 60) % 24,
-                    ])
-                    arrival = clock + travel_time
-                    if arrival > order["tw"][1]:
-                        late += 1
-                    clock = max(arrival, order["tw"][0]) + order["service"]
-                    current_zone = order["zone"]
+            route_paths = plan.get("route_paths")
+            if route_paths is None:
+                raise RuntimeError(
+                    "solve_all did not return route_paths; refusing to replay "
+                    "unordered CSP assignments as optimized routes"
+                )
+
+            totals = {
+                "late": 0, "late_minutes": 0.0,
+                "max_late_minutes": 0.0, "on_time_count": 0,
+                "stop_count": 0,
+            }
+            for van, path in route_paths.items():
+                metrics = _replay_route(
+                    path, orders, replay_matrix, zi,
+                    inst["depot_start"], inst["depot"],
+                )
+                totals["late"] += metrics["late"]
+                totals["late_minutes"] += metrics["late_minutes"]
+                totals["max_late_minutes"] = max(
+                    totals["max_late_minutes"], metrics["max_late_minutes"]
+                )
+                totals["on_time_count"] += round(metrics["on_time_rate"] * len(path))
+                totals["stop_count"] += len(path)
+
             rows.append({
-                "seed": seed, "model": model_name, "late": late,
+                "seed": seed, "model": model_name,
+                "late": totals["late"],
+                "late_minutes": totals["late_minutes"],
+                "max_late_minutes": totals["max_late_minutes"],
+                "on_time_rate": (
+                    totals["on_time_count"] / totals["stop_count"]
+                    if totals["stop_count"] else 1.0
+                ),
                 "status": "OK", "solved": True,
+                "route_orders": json.dumps({
+                    str(van): path for van, path in route_paths.items()
+                }, sort_keys=True),
             })
 
     raw = pd.DataFrame(rows)
     raw.to_csv("results/exp3_raw.csv", index=False)
-    successful = raw[raw.solved & raw.late.notna()]
-    if successful.empty:
-        raise RuntimeError("Experiment 3 produced no feasible plans; inspect exp3_raw.csv")
-    agg = successful.groupby("model").agg(
-        mean_late=("late", "mean"), std_late=("late", "std"),
-        solved_rate=("solved", "mean"),
-    ).reset_index()
+    agg = _aggregate_exp3(raw)
+    if agg.empty:
+        raise RuntimeError("Experiment 3 produced no evaluation rows")
     agg.to_csv("results/exp3.csv", index=False)
+
     plt.figure()
     plt.bar(agg["model"], agg["mean_late"])
     plt.ylabel("Mean late deliveries on held-out TLC replay")
