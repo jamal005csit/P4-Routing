@@ -1,6 +1,6 @@
 # Individual Contribution Statement
 
-**Name:** [Jamal Hany El-Shenawy]
+**Name:** Jamal Hany El-Shenawy
 
 I completed this project alone. My contributions:
 
