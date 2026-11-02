@@ -1,26 +1,44 @@
+"""Graph-colouring CSP for assigning orders to vans."""
 import time
+
 
 def _idx(zi, zone):
     return zi.get(zone, 0) if isinstance(zi, dict) else 0
 
+
 def build_diff_matrix(inst, mat, zi):
+    """Return symmetric conflicts: True means two orders cannot share a van."""
     n = len(inst["orders"])
-    diff = [[False]*n for _ in range(n)]
+    diff = [[False] * n for _ in range(n)]
     depot = inst["depot"] if inst["depot"] in zi else inst["top20"][0]
     for i in range(n):
-        for j in range(i+1, n):
-            feas = False
-            for X,Y in [(inst["orders"][i], inst["orders"][j]),
-                        (inst["orders"][j], inst["orders"][i])]:
-                td = float(mat[_idx(zi,depot), _idx(zi,X["zone"]), (inst["depot_start"]//60)%24])
-                if inst["depot_start"]+td > X["tw"][1]: continue
-                t = float(mat[_idx(zi,X["zone"]), _idx(zi,Y["zone"]), (X["tw"][0]//60)%24])
-                if max(X["tw"][0]+X["service"]+t, Y["tw"][0]) <= Y["tw"][1]:
-                    feas=True; break
-            if not feas: diff[i][j]=diff[j][i]=True
-    if inst.get("seed")==7 and n>12:
-        diff[7][12]=diff[12][7]=True
+        for j in range(i + 1, n):
+            feasible_order = False
+            for first, second in (
+                (inst["orders"][i], inst["orders"][j]),
+                (inst["orders"][j], inst["orders"][i]),
+            ):
+                depot_time = float(mat[
+                    _idx(zi, depot), _idx(zi, first["zone"]),
+                    (inst["depot_start"] // 60) % 24
+                ])
+                if inst["depot_start"] + depot_time > first["tw"][1]:
+                    continue
+                travel_time = float(mat[
+                    _idx(zi, first["zone"]), _idx(zi, second["zone"]),
+                    (first["tw"][0] // 60) % 24
+                ])
+                arrival = max(
+                    first["tw"][0] + first["service"] + travel_time,
+                    second["tw"][0],
+                )
+                if arrival <= second["tw"][1]:
+                    feasible_order = True
+                    break
+            if not feasible_order:
+                diff[i][j] = diff[j][i] = True
     return diff
+
 
 class CSP:
     def __init__(self, inst, diff, max_nodes=50000, time_limit=2.0):
@@ -29,105 +47,113 @@ class CSP:
         self.n = len(inst["orders"])
         self.V = inst["vans"]
         self.max_stops = inst.get("max_stops", 10)
+        self.max_nodes = max_nodes
+        self.time_limit = time_limit
         self.nodes = 0
         self.assignments = 0
         self.backtracks = 0
-        self.max_nodes = max_nodes
-        self.time_limit = time_limit
         self.timed_out = False
         self._t0 = None
 
     def solve(self, mode="BT+FC+AC-3", time_limit=None):
-        if time_limit is not None: 
+        if mode not in {"BT", "BT+FC", "BT+FC+AC-3"}:
+            raise ValueError("mode must be BT, BT+FC, or BT+FC+AC-3")
+        if time_limit is not None:
             self.time_limit = time_limit
-        self._t0 = time.time()
+        self.nodes = self.assignments = self.backtracks = 0
         self.timed_out = False
-        dom = [set(range(self.V)) for _ in range(self.n)]
-        order = sorted(range(self.n), key=lambda i: sum(self.diff[i]), reverse=True)
-        if "AC-3" in mode:
-            if not self.ac3(dom): 
-                return None
-        return self.bt({}, order, dom, mode)
+        self._t0 = time.monotonic()
+        domains = [set(range(self.V)) for _ in range(self.n)]
+        if mode == "BT+FC+AC-3" and not self.ac3(domains):
+            return None
+        return self.bt({}, domains, mode)
 
-    def bt(self, assign, order, dom, mode):
-        if self.nodes >= self.max_nodes or (time.time() - self._t0) > self.time_limit:
+    def bt(self, assignment, domains, mode):
+        if self.nodes >= self.max_nodes or time.monotonic() - self._t0 > self.time_limit:
             self.timed_out = True
             return None
         self.nodes += 1
-        
-        if len(assign) == self.n:
-            return dict(assign) if self.capacity_ok(assign) else None
-            
-        # dynamic ordering (minimum remaining values, ties broken by degree): lets FC/AC-3 domain reductions matter
-        v = min((x for x in range(self.n) if x not in assign), key=lambda x: (len(dom[x]), -sum(self.diff[x])))
-        for val in list(dom[v]):
-            if any(assign.get(u) == val and self.diff[v][u] for u in assign): 
-                continue
-                
-            self.assignments += 1
-            assign[v] = val
-            
-            # Early pruning for partial capacity/stops violations
-            if not self.partial_capacity_ok(assign):
-                del assign[v]
+        if len(assignment) == self.n:
+            return dict(assignment) if self.capacity_ok(assignment) else None
+
+        # MRV, with degree as a deterministic tie-breaker.
+        variable = min(
+            (v for v in range(self.n) if v not in assignment),
+            key=lambda v: (len(domains[v]), -sum(self.diff[v]), v),
+        )
+        for value in sorted(domains[variable]):
+            if any(
+                assignment.get(other) == value and self.diff[variable][other]
+                for other in assignment
+            ):
                 continue
 
-            nd = [set(d) for d in dom]
-            ok = True
-            if "FC" in mode or "AC-3" in mode:
-                for u in range(self.n):
-                    if u not in assign and self.diff[v][u] and val in nd[u]:
-                        nd[u].remove(val)
-                        if not nd[u]: 
-                            ok = False
+            self.assignments += 1
+            assignment[variable] = value
+            if not self.partial_capacity_ok(assignment):
+                del assignment[variable]
+                self.backtracks += 1
+                continue
+
+            next_domains = [set(domain) for domain in domains]
+            next_domains[variable] = {value}
+            consistent = True
+
+            if mode in {"BT+FC", "BT+FC+AC-3"}:
+                for neighbor in range(self.n):
+                    if neighbor not in assignment and self.diff[variable][neighbor]:
+                        next_domains[neighbor].discard(value)
+                        if not next_domains[neighbor]:
+                            consistent = False
                             break
-                if ok and "AC-3" in mode: 
-                    ok = self.ac3(nd, assign)
-                    
-            if ok:
-                res = self.bt(assign, order, nd, mode)
-                if res is not None:
-                    return res
-                    
-            del assign[v]
+
+            if consistent and mode == "BT+FC+AC-3":
+                consistent = self.ac3(next_domains)
+
+            if consistent:
+                result = self.bt(assignment, next_domains, mode)
+                if result is not None:
+                    return result
+
+            del assignment[variable]
             self.backtracks += 1
-            if self.timed_out: 
+            if self.timed_out:
                 return None
         return None
 
-    def ac3(self, dom, assign=None):
-        if assign is None:
-            assign = {}
-        q = [(i,j) for i in range(self.n) for j in range(self.n) if self.diff[i][j]]
-        while q:
-            i, j = q.pop()
-            if i in assign or j in assign: 
-                continue
-            if len(dom[j]) == 1:
-                v = next(iter(dom[j]))
-                if v in dom[i]:
-                    if len(dom[i]) == 1: 
-                        return False
-                    dom[i].remove(v)
-                    for k in range(self.n):
-                        if self.diff[k][i]: 
-                            q.append((k, i))
+    def ac3(self, domains):
+        """Enforce arc consistency for every binary inequality constraint."""
+        queue = [
+            (i, j)
+            for i in range(self.n)
+            for j in range(self.n)
+            if self.diff[i][j]
+        ]
+        while queue:
+            i, j = queue.pop()
+            revised = False
+            for value in tuple(domains[i]):
+                # For X_i != X_j, value has support iff X_j has another value.
+                if not any(value != other for other in domains[j]):
+                    domains[i].remove(value)
+                    revised = True
+            if not domains[i]:
+                return False
+            if revised:
+                for neighbor in range(self.n):
+                    if neighbor != j and self.diff[neighbor][i]:
+                        queue.append((neighbor, i))
         return True
 
-    def partial_capacity_ok(self, a):
-        s = [0] * self.V
-        c = [0] * self.V
-        for k, v in a.items():
-            s[v] += self.inst["orders"][k]["demand"]
-            c[v] += 1
-            if s[v] > self.inst["capacity"] or c[v] > self.max_stops:
+    def partial_capacity_ok(self, assignment):
+        loads = [0] * self.V
+        stops = [0] * self.V
+        for order_id, van in assignment.items():
+            loads[van] += self.inst["orders"][order_id]["demand"]
+            stops[van] += 1
+            if loads[van] > self.inst["capacity"] or stops[van] > self.max_stops:
                 return False
         return True
 
-    def capacity_ok(self, a):
-        s = [0] * self.V
-        c = [0] * self.V
-        for k, v in a.items():
-            s[v] += self.inst["orders"][k]["demand"]
-            c[v] += 1
-        return all(x <= self.inst["capacity"] for x in s) and all(x <= self.max_stops for x in c)
+    def capacity_ok(self, assignment):
+        return self.partial_capacity_ok(assignment)
