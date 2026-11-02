@@ -13,7 +13,7 @@
 | 3:30–4:30 | 5. Search | A*, UCS and Greedy; state representation; expanded/generated counters; heuristic admissibility limitation. |
 | 4:30–5:45 | 6. CSP | Variables/domains/constraints; BT vs BT+FC vs BT+FC+AC-3; nodes, assignments and backtracks. |
 | 5:45–6:45 | 7. Integration | Conflict matrix, per-van route checks, repair loop, widening and NO SOLUTION behavior. |
-| 6:45–8:45 | 8. Experiments | Experiment 1 search comparison, Experiment 2 pruning comparison, Experiment 3 held-out replay. Use fresh CSV/plots from five seeds. |
+| 6:45–8:45 | 8. Experiments | Experiment 1 search comparison, Experiment 2 pruning comparison, Experiment 3 held-out replay using preserved optimized route order, lateness minutes and on-time rate; use only regenerated results. Use fresh CSV/plots from five seeds. |
 | 8:45–9:30 | 9. Limitations | Taxi proxy, generated orders, sparse pairs, heuristic proof, aggregated held-out replay. |
 | 9:30–10:00 | 10. Conclusion | What works, what the experiments support, and next steps. |
 
@@ -28,7 +28,7 @@
 ## Rehearsal checklist
 
 - Run the data-generation and NN-training commands before the presentation if showing real NN output.
-- Regenerate all three experiments with at least five seeds and inspect raw per-seed CSVs before presenting numerical conclusions.
+- Regenerate all three experiments with at least five seeds and inspect raw per-seed CSVs before presenting numerical conclusions. The corrected Experiment 3 reports solved rate over all attempts and replays A* route order; do not use the superseded Experiment 3 aggregate.
 - Confirm `python run_demo.py --seed 7 --widen 0` and `python run_demo.py --seed 7 --widen 1` behave as expected on the presentation machine.
 - Keep the generated `results/demo.png` and experiment plots ready.
 - If real data or the NN checkpoint is unavailable, state that limitation and do not imply the synthetic fallback is a trained model.
