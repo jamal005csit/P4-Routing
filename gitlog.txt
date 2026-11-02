@@ -1,5 +1,15 @@
 # Git history snapshot
 # Regenerate with: git log --oneline --decorate --all > gitlog.txt
+be6d9ee docs: add explicit NN on/off demo commands
+3d6ac28 demo: add explicit NN-on and NN-off travel model modes
+6d78ddd docs: finalize individual contribution statement
+a14e533 docs: link presentation plan and clarify experiment regeneration
+4dd11a9 eval: report standard deviations for CSP counters
+19cff9e docs: add 10-minute presentation and 5-minute live demo plan
+30aafe7 docs: refresh git history after project corrections
+c49c925 test: cover CSP modes and AC-3 arc consistency
+f6d4a85 docs: align report with corrected validation and evaluation pipeline
+294471c docs: complete data dictionary and clarify generated constraints
 dffb469 feat: update local modifications
 ff26c6d chore: update gitlog.txt with latest commits
 b22a5c2 Update CONTRIBUTORS.md
