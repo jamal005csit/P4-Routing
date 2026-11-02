@@ -29,9 +29,11 @@ def route(oids, inst, mat, zi, algo="A*", max_expanded=30000, time_limit=2.0):
             if best is None:
                 return None, float('inf'), stats
             t = travel(mat, zi, cur, orders[best]["zone"], clock)
+            clock_before = clock
             stats["expanded"]+=1
             clock = max(clock+t, orders[best]["tw"][0])+orders[best]["service"]
-            cost+=t; cur=orders[best]["zone"]; un.remove(best); path.append(best)
+            wait=max(0,orders[best]["tw"][0]-(clock_before+t))
+            cost+=t+wait; cur=orders[best]["zone"]; un.remove(best); path.append(best)
         return path, cost, stats
 
     min_in = {}
