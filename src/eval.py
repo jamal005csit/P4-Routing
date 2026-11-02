@@ -16,159 +16,223 @@ from src.integration import solve_all
 def get_matrix():
     if os.path.exists("time_matrix_20x20x24.npy"):
         return np.load("time_matrix_20x20x24.npy")
-    # synthetic fallback: 20x20x24, rush hour peak
+    # Synthetic fallback is acceptable for algorithm smoke tests, not data claims.
     rng = np.random.RandomState(0)
     mat = np.full((20, 20, 24), 12.0) + rng.rand(20, 20, 24) * 4.0
     mat[:, :, 8:11] += 8.0
     mat[:, :, 17:20] += 10.0
-    return mat * 1.2  # van factor
+    return mat * 1.2
 
 
 def exp1(seeds):
     os.makedirs("results", exist_ok=True)
     mat = get_matrix()
     rows = []
-    for s in seeds:
+    for seed in seeds:
         for k in [6, 7, 8, 9, 10]:
-            inst = generate(s, k)
-            zi = {z: i for i, z in enumerate(inst["top20"])}
-            for algo in ["A*", "UCS", "Greedy"]:
-                t0 = time.time()
-                p, c, st = route(list(range(k)), inst, mat, zi, algo, max_expanded=20000, time_limit=1.5)
-                if c is None or (isinstance(c, float) and np.isinf(c)):
-                    c = 9999.0
-                    solved = 0
-                else:
-                    solved = 1 if p is not None else 0
-                dt = time.time() - t0
-                rows.append({"seed": s, "k": k, "algo": algo,
-                             "cost": float(c), "time": dt,
-                             "expanded": st.get("expanded", 0),
-                             "generated": st.get("generated", 0),
-                             "solved": solved})
+            inst = generate(seed, k)
+            zi = {zone: i for i, zone in enumerate(inst["top20"])}
+            for algorithm in ["A*", "UCS", "Greedy"]:
+                started = time.perf_counter()
+                path, cost, stats = route(
+                    list(range(k)), inst, mat, zi, algorithm,
+                    max_expanded=20000, time_limit=1.5,
+                )
+                solved = int(path is not None and np.isfinite(cost))
+                rows.append({
+                    "seed": seed, "k": k, "algo": algorithm,
+                    "cost": float(cost) if solved else np.nan,
+                    "time": time.perf_counter() - started,
+                    "expanded": stats.get("expanded", 0),
+                    "generated": stats.get("generated", 0),
+                    "solved": solved,
+                })
     df = pd.DataFrame(rows)
-    df["cost_solved"] = df.cost.where(df.solved == 1)
     agg = df.groupby(["k", "algo"]).agg(
         mean_cost=("cost", "mean"), std_cost=("cost", "std"),
         mean_time=("time", "mean"), std_time=("time", "std"),
-        mean_expanded=("expanded", "mean"),
+        mean_expanded=("expanded", "mean"), std_expanded=("expanded", "std"),
+        mean_generated=("generated", "mean"), std_generated=("generated", "std"),
         solved_rate=("solved", "mean"),
-        mean_cost_solved=("cost_solved", "mean")).reset_index()
+    ).reset_index()
+    df.to_csv("results/exp1_raw.csv", index=False)
     agg.to_csv("results/exp1.csv", index=False)
-    print(agg.to_string())
-    plt.figure()
-    agg.pivot(index="k", columns="algo", values="mean_time").plot(kind="bar")
-    plt.ylabel("mean time (s)")
+    ax = agg.pivot(index="k", columns="algo", values="mean_time").plot(kind="bar")
+    ax.set_ylabel("Mean runtime (s)")
     plt.tight_layout()
     plt.savefig("results/exp1.png")
     plt.close()
-    print("saved results/exp1.csv, results/exp1.png")
+    print(agg.to_string(index=False))
 
 
 def exp2(seeds):
     os.makedirs("results", exist_ok=True)
     mat = get_matrix()
     rows = []
-    for s in seeds:
+    for seed in seeds:
         for n in [15, 20, 30]:
-            inst = generate(s, n)
-            zi = {z: i for i, z in enumerate(inst["top20"])}
+            inst = generate(seed, n)
+            zi = {zone: i for i, zone in enumerate(inst["top20"])}
             diff = build_diff_matrix(inst, mat, zi)
             for mode in ["BT", "BT+FC", "BT+FC+AC-3"]:
-                csp = CSP(inst, diff, max_nodes=20000, time_limit=1.0)
-                t0 = time.time()
-                r = csp.solve(mode)
-                dt = time.time() - t0
-                rows.append({"seed": s, "n": n, "mode": mode,
-                             "time": dt, "nodes": csp.nodes,
-                             "assignments": csp.assignments,
-                             "backtracks": csp.backtracks,
-                             "solved": r is not None})
+                solver = CSP(inst, diff, max_nodes=20000, time_limit=1.0)
+                started = time.perf_counter()
+                solution = solver.solve(mode)
+                rows.append({
+                    "seed": seed, "n": n, "mode": mode,
+                    "time": time.perf_counter() - started,
+                    "nodes": solver.nodes, "assignments": solver.assignments,
+                    "backtracks": solver.backtracks,
+                    "solved": solution is not None, "timed_out": solver.timed_out,
+                })
     df = pd.DataFrame(rows)
     agg = df.groupby(["n", "mode"]).agg(
         mean_time=("time", "mean"), std_time=("time", "std"),
         mean_nodes=("nodes", "mean"), std_nodes=("nodes", "std"),
-        solved_rate=("solved", "mean")).reset_index()
+        mean_assignments=("assignments", "mean"),
+        mean_backtracks=("backtracks", "mean"),
+        solved_rate=("solved", "mean"), timeout_rate=("timed_out", "mean"),
+    ).reset_index()
+    df.to_csv("results/exp2_raw.csv", index=False)
     agg.to_csv("results/exp2.csv", index=False)
-    print(agg.to_string())
-    plt.figure()
-    agg.pivot(index="n", columns="mode", values="mean_nodes").plot(kind="bar")
-    plt.ylabel("mean nodes")
+    ax = agg.pivot(index="n", columns="mode", values="mean_nodes").plot(kind="bar")
+    ax.set_ylabel("Mean search nodes")
     plt.tight_layout()
     plt.savefig("results/exp2.png")
     plt.close()
-    print("saved results/exp2.csv, results/exp2.png")
+    print(agg.to_string(index=False))
+
+
+def _load_replay_matrices():
+    """Build three planning matrices and one independent held-out replay matrix."""
+    required = [
+        "train_20zones.parquet", "test_20zones.parquet",
+        "top20.json", "time_matrix_20x20x24.npy",
+    ]
+    missing = [path for path in required if not os.path.exists(path)]
+    if missing:
+        raise FileNotFoundError(
+            "Experiment 3 requires real held-out TLC data and a trained NN; "
+            f"missing: {', '.join(missing)}. Run make_data.py and src.nn first."
+        )
+
+    train = pd.read_parquet("train_20zones.parquet")
+    test = pd.read_parquet("test_20zones.parquet")
+    top20 = pd.read_json("top20.json", typ="series").tolist()
+    nn_matrix = np.load("time_matrix_20x20x24.npy").astype(float)
+    if nn_matrix.shape != (20, 20, 24):
+        raise ValueError(f"Expected NN matrix shape (20,20,24), got {nn_matrix.shape}")
+
+    shape = (20, 20, 24)
+    hist_matrix = np.full(shape, float(train.duration.mean()), dtype=float)
+    distance_matrix = np.full(shape, float(train.trip_distance.mean()) / 18.0 * 60.0, dtype=float)
+    replay_matrix = np.full(shape, float(test.duration.mean()), dtype=float)
+
+    train_group = train.groupby(["PULocationID", "DOLocationID", "hour"]).duration.mean()
+    test_group = test.groupby(["PULocationID", "DOLocationID", "hour"]).duration.mean()
+    pair_distance = train.groupby(["PULocationID", "DOLocationID"]).trip_distance.mean()
+    global_distance = float(train.trip_distance.mean())
+    zone_index = {zone: i for i, zone in enumerate(top20)}
+
+    for i, pickup in enumerate(top20):
+        for j, dropoff in enumerate(top20):
+            distance = float(pair_distance.get((pickup, dropoff), global_distance))
+            distance_matrix[i, j, :] = distance / 18.0 * 60.0
+            for hour in range(24):
+                hist_matrix[i, j, hour] = float(
+                    train_group.get((pickup, dropoff, hour), train.duration.mean())
+                )
+                replay_matrix[i, j, hour] = float(
+                    test_group.get((pickup, dropoff, hour), test.duration.mean())
+                )
+
+    # Convert observed taxi duration to the same van-time scale as NN export.
+    replay_matrix *= 1.2
+    hist_matrix *= 1.2
+    distance_matrix *= 1.2
+    return top20, {
+        "NN": nn_matrix,
+        "hist-avg": hist_matrix,
+        "distance": distance_matrix,
+    }, replay_matrix, zone_index
 
 
 def exp3(seeds):
     os.makedirs("results", exist_ok=True)
-    mat_nn = get_matrix()
-    rng = np.random.RandomState(1)
-    # simulate model error: avg and distance are biased vs NN
-    mats = {
-        "NN": mat_nn,
-        "hist-avg": mat_nn * 1.10 + 1.0,
-        "distance": mat_nn * 0.85 + 4.0
-    }
-    # real world for replay = NN + lognormal noise
-    real_mat = mat_nn * rng.lognormal(0, 0.15, size=mat_nn.shape)
-
+    top20, planning_matrices, replay_matrix, zi = _load_replay_matrices()
     rows = []
-    for s in seeds:
-        for model in ["NN", "hist-avg", "distance"]:
-            inst = generate(s, 20)
-            zi = {z: i for i, z in enumerate(inst["top20"])}
-            plan_mat = mats[model]
-            res = solve_all(inst, plan_mat, zi, algo="A*")
-            if res["status"] != "OK":
-                rows.append({"seed": s, "model": model, "late": 20})
+    for seed in seeds:
+        inst = generate(seed, 20, top20=top20)
+        for model_name, planning_matrix in planning_matrices.items():
+            plan = solve_all(inst, planning_matrix, zi, algo="A*")
+            if plan["status"] != "OK":
+                rows.append({
+                    "seed": seed, "model": model_name, "late": np.nan,
+                    "status": plan["status"], "solved": False,
+                })
                 continue
-            # replay routes on real_mat
-            mp = {o["id"]: o for o in inst["orders"]}
+
+            orders = {order["id"]: order for order in inst["orders"]}
             late = 0
-            for v, oids in res["routes"].items():
-                # need order: sort by planned path if available, else tw
-                path = sorted(oids, key=lambda oid: mp[oid]["tw"][0])
-                clock = inst["depot_start"]
-                cur = inst["depot"]
-                for oid in path:
-                    t = float(real_mat[zi[cur], zi[mp[oid]["zone"]], int(clock // 60) % 24])
-                    if clock + t > mp[oid]["tw"][1]:
+            for van, order_ids in plan["routes"].items():
+                path = sorted(order_ids, key=lambda oid: orders[oid]["tw"][0])
+                clock = float(inst["depot_start"])
+                current_zone = inst["depot"]
+                for order_id in path:
+                    order = orders[order_id]
+                    travel_time = float(replay_matrix[
+                        zi[current_zone], zi[order["zone"]],
+                        int(clock // 60) % 24,
+                    ])
+                    arrival = clock + travel_time
+                    if arrival > order["tw"][1]:
                         late += 1
-                    clock = max(clock + t, mp[oid]["tw"][0]) + mp[oid]["service"]
-                    cur = mp[oid]["zone"]
-            rows.append({"seed": s, "model": model, "late": late})
-    df = pd.DataFrame(rows)
-    agg = df.groupby("model").agg(mean_late=("late", "mean"), std_late=("late", "std")).reset_index()
+                    clock = max(arrival, order["tw"][0]) + order["service"]
+                    current_zone = order["zone"]
+            rows.append({
+                "seed": seed, "model": model_name, "late": late,
+                "status": "OK", "solved": True,
+            })
+
+    raw = pd.DataFrame(rows)
+    raw.to_csv("results/exp3_raw.csv", index=False)
+    successful = raw[raw.solved & raw.late.notna()]
+    if successful.empty:
+        raise RuntimeError("Experiment 3 produced no feasible plans; inspect exp3_raw.csv")
+    agg = successful.groupby("model").agg(
+        mean_late=("late", "mean"), std_late=("late", "std"),
+        solved_rate=("solved", "mean"),
+    ).reset_index()
     agg.to_csv("results/exp3.csv", index=False)
-    print(agg.to_string())
     plt.figure()
     plt.bar(agg["model"], agg["mean_late"])
-    plt.ylabel("mean late deliveries")
+    plt.ylabel("Mean late deliveries on held-out TLC replay")
     plt.tight_layout()
     plt.savefig("results/exp3.png")
     plt.close()
-    print("saved results/exp3.csv, results/exp3.png")
+    print(agg.to_string(index=False))
 
 
 def parse_args():
-    p = argparse.ArgumentParser()
-    p.add_argument("--exp", default="1,2,3", help="e.g. 1,2,3 or 1")
-    p.add_argument("--seeds", default="0,1,2,3,4", help="e.g. 0,1,2,3,4")
-    a = p.parse_args()
-    exps = [int(x) for x in str(a.exp).replace(" ", ",").split(",") if str(x).strip() != ""]
-    seeds = [int(x) for x in str(a.seeds).replace(" ", ",").split(",") if str(x).strip() != ""]
-    return exps, seeds
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--exp", default="1,2,3", help="e.g. 1,2,3 or 1")
+    parser.add_argument("--seeds", default="0,1,2,3,4", help="at least five seeds recommended")
+    args = parser.parse_args()
+    experiments = [int(x) for x in str(args.exp).replace(" ", ",").split(",") if x.strip()]
+    seeds = [int(x) for x in str(args.seeds).replace(" ", ",").split(",") if x.strip()]
+    if not seeds:
+        parser.error("provide at least one seed")
+    return experiments, seeds
 
 
 def main():
-    exps, seeds = parse_args()
-    print(f"running exps={exps} seeds={seeds}")
-    if 1 in exps:
+    experiments, seeds = parse_args()
+    print(f"running experiments={experiments}, seeds={seeds}")
+    if 1 in experiments:
         exp1(seeds)
-    if 2 in exps:
+    if 2 in experiments:
         exp2(seeds)
-    if 3 in exps:
+    if 3 in experiments:
         exp3(seeds)
 
 
