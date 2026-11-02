@@ -7,10 +7,11 @@ An end-to-end pipeline for dataset generation, neural network training, evaluati
 ## Quick Start
 
 ### 1. Installation
-Install all required dependencies:A
+Install all required dependencies:
 ```bash
 pip install -r requirements.txt
 ```
+Run all commands from the repository root.
 
 ---
 
@@ -44,6 +45,9 @@ python run_demo.py --seed 7
 
 ---
 
+### Demo output
+`python run_demo.py --seed 7` prints the input, the CSP pruning counters (BT / BT+FC / BT+FC+AC-3), the solution and per-van search counters, and saves `results/demo.png`. It widens the time windows once by default; use `--widen 0` for the original windows (no solution).
+
 ## Testing
 
 Run the test suite in quiet mode:
@@ -62,4 +66,3 @@ Access the UI in your browser:
 ```bash
 http://localhost:8000
 ```
-
