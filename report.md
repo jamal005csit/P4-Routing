@@ -104,7 +104,7 @@ python -m src.eval --exp 1,2,3 --seeds 0,1,2,3,4
 pytest -q
 ```
 
-The test suite completed successfully: **12 passed in 0.57 seconds**.
+The project previously passed 12 tests. Two additional regression tests now cover ordered-route replay and solved-rate aggregation; run `pytest -q` after pulling the latest commits to verify all 14 tests.
 
 The evaluator writes per-seed observations and aggregate means/standard deviations to the `results/` directory. Preserve the raw CSVs alongside aggregate tables so that solved rates, timeouts and seed-level variation can be audited. The numerical results in this report are from the latest run reported by the project author; rerun the commands above after any code, data, or configuration change before treating them as current.
 
