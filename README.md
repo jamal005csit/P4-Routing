@@ -57,7 +57,7 @@ Run the test suite locally in quiet mode:
 pytest -q
 ```
 
-The suite covers 5 normal cases, 3 edge cases, and 3 impossible cases, including CSP mode selection and AC-3 domain propagation.
+The suite covers 5 normal cases, 4 edge cases, and 3 impossible cases, including CSP mode selection and AC-3 domain propagation.
 
 ## Presentation
 
