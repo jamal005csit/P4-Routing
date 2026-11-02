@@ -90,7 +90,9 @@ def exp2(seeds):
         mean_time=("time", "mean"), std_time=("time", "std"),
         mean_nodes=("nodes", "mean"), std_nodes=("nodes", "std"),
         mean_assignments=("assignments", "mean"),
+        std_assignments=("assignments", "std"),
         mean_backtracks=("backtracks", "mean"),
+        std_backtracks=("backtracks", "std"),
         solved_rate=("solved", "mean"), timeout_rate=("timed_out", "mean"),
     ).reset_index()
     df.to_csv("results/exp2_raw.csv", index=False)
